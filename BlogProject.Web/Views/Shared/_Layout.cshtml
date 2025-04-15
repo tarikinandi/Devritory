@@ -1,0 +1,432 @@
+﻿@using System.Security.Claims
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="@ViewData["MetaDescription"]" />
+    <title>@ViewData["Title"] - Devritory</title>
+
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/BlogProject.Web.styles.css" asp-append-version="true" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600&display=swap" rel="stylesheet">
+</head>
+
+<body class="bg-light">
+
+    <header class="shadow-sm">
+        <button id="themeToggle" class="btn btn-sm btn-outline-secondary position-fixed bottom-0 end-0 m-4 shadow z-3 rounded-circle">
+            <i class="bi bi-moon-fill"></i>
+        </button>
+
+        <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom">
+            <div class="container-fluid px-4">
+                <h1 class="h4 fw-bold mb-0 text-primary animate__animated animate__fadeInLeft" style="letter-spacing: 1px;">
+                    <span style="font-size: 1.6rem;">Devritory</span>
+                </h1>
+
+
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain" aria-controls="navbarMain" aria-expanded="false" aria-label="Menüyü Aç/Kapat">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <div class="collapse navbar-collapse justify-content-between" id="navbarMain">
+                    <ul class="navbar-nav">
+                        <li class="nav-item">
+                            <a class="nav-link fw-semibold" asp-controller="Blog" asp-action="Index">
+                                <i class="bi bi-house-door me-1"></i> Ana Sayfa
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link fw-semibold" asp-controller="Home" asp-action="About">
+                                <i class="bi bi-info-circle me-1"></i> Hakkımızda
+                            </a>
+                        </li>
+
+                        @if (User.Identity?.IsAuthenticated == true)
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link position-relative" href="#" role="button" data-bs-toggle="dropdown">
+                                    <i class="bi bi-bell-fill" id="notificationIcon"></i>
+                                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="notifCount">0</span>
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end shadow-sm p-2" style="width: 320px;" id="notifList">
+                                    <li class="dropdown-header fw-bold text-primary px-3 py-2">
+                                        <i class="bi bi-chat-dots me-1"></i> Yeni Yorumlar
+                                    </li>
+                                    <li><hr class="dropdown-divider" /></li>
+                                </ul>
+                            </li>
+                        }
+                    </ul>
+
+                 
+
+
+                    <div class="position-relative me-auto ms-auto" style="min-width: 300px;">
+                        <form class="d-flex" id="searchForm">
+                            <input class="form-control rounded-pill px-4 shadow-sm" type="search"
+                                   placeholder="Blog ara..." aria-label="Search"
+                                   id="searchInput" autocomplete="off">
+                        </form>
+                        <ul id="searchResults"
+                            class="list-group position-absolute w-100 mt-2 shadow-sm d-none"
+                            style="z-index: 999; max-height: 400px; overflow-y: auto;"></ul>
+                    </div>
+
+                    <ul class="navbar-nav">
+                        @if (User.Identity?.IsAuthenticated == true)
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Blog" asp-action="Create">+ Yeni Blog</a>
+                            </li>
+                            @if (User.IsInRole("Admin"))
+                            {
+                                <li class="nav-item dropdown">
+                                    <a class="nav-link dropdown-toggle text-danger fw-semibold" href="#" role="button" data-bs-toggle="dropdown">
+                                        <i class="bi bi-shield-lock"></i> Admin Paneli
+                                    </a>
+                                    <ul class="dropdown-menu">
+                                        <li><a class="dropdown-item" href="/Admin/Dashboard"><i class="bi bi-speedometer me-1"></i> Dashboard</a></li>
+                                        <li><a class="dropdown-item" href="/Admin/Blogs"><i class="bi bi-kanban me-1"></i> Blog Yönetimi</a></li>
+                                        <li><a class="dropdown-item" href="/Admin/Comments"><i class="bi bi-chat-left-text me-1"></i> Yorum Yönetimi</a></li>
+                                        <li><a class="dropdown-item" href="/Admin/Categories"><i class="bi bi-tags me-1"></i> Kategori Yönetimi</a></li>
+                                        <li><a class="dropdown-item" href="/Admin/Users"><i class="bi bi-person-rolodex me-1"></i> Kullanıcı Yönetimi</a></li>
+                                    </ul>
+                                </li>
+                            }
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                                    <i class="bi bi-person-circle me-1"></i> @User.Identity.Name
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li class="nav-item">
+                                        <a class="nav-link" asp-controller="Blog" asp-action="MyBlogs">
+                                            <i class="bi bi-collection"></i> Bloglarım
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" asp-controller="Settings" asp-action="Index">
+                                            <i class="bi bi-gear"></i> Ayarlar
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <form method="post" asp-controller="User" asp-action="Logout">
+                                            <button type="submit" class="dropdown-item">Çıkış Yap</button>
+                                        </form>
+                                    </li>   
+                                </ul>
+                            </li>
+                        }
+                        else
+                        {
+                            <li class="nav-item"><a class="nav-link" asp-controller="User" asp-action="Login">Giriş Yap</a></li>
+                            <li class="nav-item"><a class="nav-link" asp-controller="User" asp-action="Register">Kayıt Ol</a></li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <div class="container-fluid mt-4 px-4">
+        <main role="main" class="pb-3">
+            @RenderBody()
+        </main>
+    </div>
+
+    <footer class="footer border-top text-muted bg-light dark-mode-card small py-3">
+        <div class="container-fluid d-flex flex-column flex-md-row justify-content-between align-items-center gap-2">
+
+            <div class="text-center text-md-start">
+                <span>&copy; 2025 - <strong>Devritory</strong> | Muhammet Tarık İnandı</span>
+            </div>
+
+            <ul class="list-inline mb-0 text-center">
+                <li class="list-inline-item"><a href="/Home/About" class="text-muted text-decoration-none">Hakkımda</a></li>
+                <li class="list-inline-item"><a href="/Home/Contact" class="text-muted text-decoration-none">İletişim</a></li>
+                <li class="list-inline-item"><a href="/Home/FAQ" class="text-muted text-decoration-none">SSS</a></li>
+                <li class="list-inline-item"><a href="/Home/Privacy" class="text-muted text-decoration-none">Gizlilik</a></li>
+                <li class="list-inline-item"><a href="/Home/Policy" class="text-muted text-decoration-none">KVVK</a></li>
+            </ul>
+
+            <div class="text-center text-md-end" style="margin-right: 80px;">
+                <a href="https://www.linkedin.com/in/tarikinandi/" target="_blank" class="text-primary me-2"><i class="bi bi-linkedin"></i></a>
+                <a href="https://github.com/tarikinandi" target="_blank" class="text-dark me-2"><i class="bi bi-github"></i></a>
+                <a href="mailto:inandi.tarik@gmail.com" class="text-danger me-2"><i class="bi bi-envelope-fill"></i></a>
+                <a href="https://www.instagram.com/mt_inandi/" target="_blank" class="text-warning"><i class="bi bi-instagram"></i></a>
+            </div>
+
+        </div>
+    </footer>
+
+
+
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+
+    <script>
+        const themeToggle = document.getElementById('themeToggle');
+        const prefersDark = localStorage.getItem("theme") === "dark";
+        if (prefersDark) {
+            document.body.classList.add("dark-mode");
+        }
+        themeToggle.addEventListener("click", () => {
+            document.body.classList.toggle("dark-mode");
+            const isDark = document.body.classList.contains("dark-mode");
+            localStorage.setItem("theme", isDark ? "dark" : "light");
+        });
+
+        const searchInput = document.getElementById('searchInput');
+        const resultList = document.getElementById('searchResults');
+
+        searchInput.addEventListener("keyup", async function () {
+            const query = this.value.trim();
+            if (query.length < 2) {
+                resultList.classList.add("d-none");
+                resultList.innerHTML = "";
+                return;
+            }
+
+            try {
+                const response = await fetch(`/Blog/Search?query=${encodeURIComponent(query)}`);
+                const results = await response.json();
+
+                resultList.innerHTML = "";
+                results.forEach(item => {
+                    const li = document.createElement("li");
+                    li.classList.add("list-group-item", "list-group-item-action", "d-flex", "align-items-start", "gap-2");
+
+                    li.innerHTML = `
+                        <img src="/img/${item.image}" class="rounded border" style="width: 50px; height: 50px; object-fit: cover;" />
+                        <div>
+                            <div class="fw-semibold">${item.title}</div>
+                            <div class="small text-muted">
+                                ${item.categories.map(cat => `<span class="badge bg-secondary me-1">${cat}</span>`).join("")}
+                            </div>
+                        </div>
+                    `;
+                    li.onclick = () => window.location.href = `/Blog/${item.slug}`;
+                    resultList.appendChild(li);
+                });
+
+                resultList.classList.toggle("d-none", results.length === 0);
+            } catch (error) {
+                console.error("Arama hatası:", error);
+            }
+        });
+
+        document.addEventListener("click", (e) => {
+            if (!document.getElementById("searchForm").contains(e.target)) {
+                resultList.classList.add("d-none");
+            }
+        });
+
+        @if (User.Identity?.IsAuthenticated == true)
+        {
+                <text>
+                async function loadNotifications() {
+                    const response = await fetch("/Blog/GetLatestComments");
+                    const comments = await response.json();
+
+                    const notifList = document.getElementById("notifList");
+                    const notifCount = document.getElementById("notifCount");
+
+                    const oldItems = notifList.querySelectorAll(".notification-item, .dynamic-divider");
+                    oldItems.forEach(item => item.remove());
+
+                    if (comments.length === 0) {
+                        const emptyLi = document.createElement("li");
+                        emptyLi.className = "text-center text-muted py-2 notification-item";
+                        emptyLi.textContent = "Yorum bulunamadı";
+                        notifList.appendChild(emptyLi);
+                        notifCount.classList.add("d-none");
+                    } else {
+                        comments.forEach(c => {
+                            const li = document.createElement("li");
+                            li.className = "px-2 py-2 notification-item";
+                            li.innerHTML = `
+                                <div class="card border-0 shadow-sm">
+                                    <div class="card-body p-2 d-flex gap-2">
+                                        <img src="/img/${c.image || 'default.png'}" class="rounded-circle border" style="width: 40px; height: 40px; object-fit: cover;" />
+                                        <div class="flex-grow-1">
+                                            <div class="d-flex justify-content-between">
+                                                <strong class="text-primary">${c.user}</strong>
+                                                <small class="text-muted">${c.date}</small>
+                                            </div>
+                                            <div class="small text-muted mb-1">→ <em>${c.blogTitle}</em></div>
+                                            <div class="small">${c.content}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                            notifList.appendChild(li);
+
+                            const divider = document.createElement("li");
+                            divider.className = "dropdown-divider dynamic-divider";
+                            notifList.appendChild(divider);
+                        });
+
+                        notifCount.textContent = comments.length;
+                        notifCount.classList.remove("d-none");
+                    }
+                }
+
+                document.addEventListener("DOMContentLoaded", loadNotifications);
+                </text>
+        }
+    </script>
+
+
+</body>
+</html>
+
+<style>
+    body.dark-mode {
+        background-color: #121212 !important;
+        color: #e0e0e0 !important;
+    }
+
+        body.dark-mode .container,
+        body.dark-mode .card,
+        body.dark-mode .bg-white,
+        body.dark-mode .navbar,
+        body.dark-mode .dropdown-menu,
+        body.dark-mode .alert,
+        body.dark-mode .pagination,
+        body.dark-mode .rounded-4,
+        body.dark-mode .border {
+            background-color: #1f1f1f !important;
+            color: #e0e0e0 !important;
+            border-color: #333 !important;
+        }
+
+        body.dark-mode .text-dark {
+            color: #e0e0e0 !important;
+        }
+
+        body.dark-mode .btn-outline-primary {
+            color: #90caf9;
+            border-color: #90caf9;
+        }
+
+            body.dark-mode .btn-outline-primary:hover {
+                background-color: #90caf9;
+                color: #121212;
+            }
+
+        body.dark-mode .nav-link,
+        body.dark-mode a,
+        body.dark-mode .text-muted {
+            color: #ccc !important;
+        }
+
+        body.dark-mode .form-control {
+            background-color: #2c2c2c;
+            color: #fff;
+            border-color: #444;
+        }
+
+        body.dark-mode .badge {
+            background-color: #333 !important;
+            color: #90caf9 !important;
+        }
+
+        body.dark-mode .blog-card:hover {
+            box-shadow: 0 0.75rem 1.5rem rgba(255, 255, 255, 0.05) !important;
+        }
+
+        body.dark-mode .dropdown-menu {
+            background-color: #2c2c2c !important;
+            border-color: #444 !important;
+        }
+
+        body.dark-mode .dropdown-item {
+            color: #f1f1f1 !important;
+        }
+
+            body.dark-mode .dropdown-item:hover,
+            body.dark-mode .dropdown-item:focus {
+                background-color: #3a3a3a !important;
+                color: #fff !important;
+            }
+
+    #notificationDropdown {
+        animation: fadeSlideDown 0.3s ease;
+        transform-origin: top right;
+    }
+
+    #notificationIcon.animate {
+        animation: shake 0.6s ease;
+    }
+
+
+    @@keyframes fadeSlideDown
+    {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .notification-item:hover {
+            background-color: #f5f5f5;
+        }
+
+        body.dark-mode .notification-item:hover {
+            background-color: #2a2a2a;
+        }
+
+        .notification-bell.animate {
+            animation: shake 0.6s ease;
+        }
+
+        @@keyframes shake {
+        0%  {
+            transform: rotate(0deg);
+            }
+
+        20% {
+            transform: rotate(-15deg);
+        }
+
+        40% {
+            transform: rotate(10deg);
+        }
+
+        60% {
+            transform: rotate(-10deg);
+        }
+
+        80% {
+            transform: rotate(5deg);
+        }
+
+        100% {
+            transform: rotate(0deg);
+        }
+
+        }
+
+            .footer {
+                font-size: 0.9rem;
+                background-color: #f9f9f9;
+            }
+
+            body.dark-mode .footer {
+                background-color: #1e1e1e;
+                color: #ccc;
+            }
+
+    </style>

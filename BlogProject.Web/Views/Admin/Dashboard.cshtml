@@ -1,0 +1,235 @@
+﻿@model DashboardViewModel
+@{
+    ViewData["Title"] = "Yönetim Paneli";
+}
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/animate.css@4.1.1/animate.min.css" rel="stylesheet">
+
+<div class="container-fluid py-5 px-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold text-gradient"><i class="bi bi-bar-chart-line-fill"></i> Yönetim Paneli</h2>
+        <span class="badge bg-dark px-3 py-2">@DateTime.Now.ToLongDateString()</span>
+    </div>
+
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-5 g-4 mb-5">
+        <div class="col">
+            <div class="card text-white bg-primary h-100 shadow animate__animated animate__fadeInUp rounded-4">
+                <div class="card-body text-center">
+                    <i class="bi bi-person-fill display-6"></i>
+                    <h3 class="fw-bold mt-3 counter" data-target="@Model.TotalUsers">0</h3>
+                    <p>Kullanıcı</p>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card text-white bg-success h-100 shadow animate__animated animate__fadeInUp animate__delay-1s rounded-4">
+                <div class="card-body text-center">
+                    <i class="bi bi-journal-text display-6"></i>
+                    <h3 class="fw-bold mt-3 counter" data-target="@Model.TotalBlogs">0</h3>
+                    <p>Blog</p>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card text-white bg-warning h-100 shadow animate__animated animate__fadeInUp animate__delay-2s rounded-4">
+                <div class="card-body text-center">
+                    <i class="bi bi-chat-dots display-6"></i>
+                    <h3 class="fw-bold mt-3 counter" data-target="@Model.TotalComments">0</h3>
+                    <p>Yorum</p>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card text-white bg-info h-100 shadow animate__animated animate__fadeInUp animate__delay-3s rounded-4">
+                <div class="card-body text-center">
+                    <i class="bi bi-folder2-open display-6"></i>
+                    <h3 class="fw-bold mt-3">@Model.TotalCategories</h3>
+                    <p>Kategori</p>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card text-white bg-dark h-100 shadow animate__animated animate__fadeInUp animate__delay-4s rounded-4">
+                <div class="card-body text-center">
+                    <i class="bi bi-eye display-6"></i>
+                    <h3 class="fw-bold mt-3">@Model.TotalViewCount</h3>
+                    <p>Görüntülenme</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-5">
+        <div class="col-md-6">
+            <div class="card shadow rounded-4">
+                <div class="card-header fw-bold bg-light">
+                    <i class="bi bi-pie-chart"></i> Kategori Bazlı Blog Dağılımı
+                </div>
+                <div class="card-body">
+                    <canvas id="categoryChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card shadow rounded-4">
+                <div class="card-header fw-bold bg-light">
+                    <i class="bi bi-bar-chart"></i> En Çok Görüntülenen Bloglar
+                </div>
+                <div class="card-body">
+                    <canvas id="viewChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="card shadow-sm rounded-4">
+                <div class="card-header fw-bold bg-light">
+                    <i class="bi bi-clock-history"></i> Son Bloglar
+                </div>
+                <ul class="list-group list-group-flush">
+                    @foreach (var blog in Model.LatestBlogs)
+                    {
+                        <li class="list-group-item d-flex justify-content-between align-items-start">
+                            <div>
+                                <span class="fw-semibold">@blog.Title</span><br />
+                                <small class="text-muted">@blog.PublishDate.ToString("dd.MM.yyyy")</small>
+                            </div>
+                            <i class="bi bi-journal-text text-primary"></i>
+                        </li>
+                    }
+                </ul>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm rounded-4">
+                <div class="card-header fw-bold bg-light">
+                    <i class="bi bi-chat-left-text"></i> Son Yorumlar
+                </div>
+                <ul class="list-group list-group-flush">
+                    @foreach (var comment in Model.LatestComments)
+                    {
+                        <li class="list-group-item">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <span class="fw-semibold">@comment.User?.UserName:</span> @comment.Content
+                                </div>
+                                <small class="text-muted">@comment.CommentDate.ToString("dd.MM.yyyy HH:mm")</small>
+                            </div>
+                        </li>
+                    }
+                </ul>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm rounded-4">
+                <div class="card-header fw-bold bg-light">
+                    <i class="bi bi-person-plus"></i> Son Kullanıcılar
+                </div>
+                <ul class="list-group list-group-flush">
+                    @foreach (var user in Model.LatestUsers)
+                    {
+                        <li class="list-group-item d-flex align-items-center">
+                            <img src="~/img/@user.ImagePath" class="rounded-circle me-2 border" width="32" height="32" style="object-fit: cover" />
+                            <div>
+                                <span class="fw-semibold">@user.UserName</span><br />
+                                <small class="text-muted">@user.Email</small>
+                            </div>
+                        </li>
+                    }
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const isDark = document.body.classList.contains("dark-mode");
+        const labelColor = isDark ? '#e0e0e0' : '#212529';
+
+        new Chart(document.getElementById('categoryChart'), {
+            type: 'doughnut',
+            data: {
+                labels: @Html.Raw(Json.Serialize(Model.CategoryBlogCounts.Select(c => c.CategoryName))),
+                datasets: [{
+                    data: @Html.Raw(Json.Serialize(Model.CategoryBlogCounts.Select(c => c.BlogCount))),
+                    backgroundColor: ['#0d6efd', '#198754', '#ffc107', '#dc3545', '#6f42c1']
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: labelColor
+                        }
+                    }
+                }
+            }
+        });
+
+        new Chart(document.getElementById('viewChart'), {
+            type: 'bar',
+            data: {
+                labels: @Html.Raw(Json.Serialize(Model.TopViewedBlogs.Select(c => c.BlogTitle))),
+                datasets: [{
+                    label: 'Görüntülenme',
+                    data: @Html.Raw(Json.Serialize(Model.TopViewedBlogs.Select(c => c.ViewCount))),
+                    backgroundColor: '#0d6efd'
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: false,
+                        labels: {
+                            color: labelColor
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        ticks: {
+                            color: labelColor
+                        }
+                    },
+                    y: {
+                        ticks: {
+                            color: labelColor
+                        }
+                    }
+                }
+            }
+        });
+
+        document.querySelectorAll('.counter').forEach(counter => {
+            const update = () => {
+                const target = +counter.getAttribute('data-target');
+                const current = +counter.innerText;
+                const increment = Math.ceil(target / 40);
+                if (current < target) {
+                    counter.innerText = current + increment;
+                    setTimeout(update, 30);
+                } else {
+                    counter.innerText = target;
+                }
+            }
+            update();
+        });
+    </script>
+}
+
+<style>
+    .text-gradient {
+        background: linear-gradient(45deg, #0d6efd, #6610f2);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+</style>

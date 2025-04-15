@@ -1,0 +1,86 @@
+﻿@model Blog
+@{
+    ViewData["Title"] = "Blog Düzenle";
+    var categoryList = ViewBag.Categories as List<Category>;
+}
+
+<div class="container-fluid py-5 px-4">
+    <h2 class="mb-4 fw-bold border-bottom pb-2">Blog Düzenle</h2>
+
+    <form asp-action="Edit" method="post" enctype="multipart/form-data">
+        <input type="hidden" name="Id" value="@Model.Id" />
+
+        <div class="mb-3">
+            <label class="form-label fw-semibold">Başlık</label>
+            <input name="Title" class="form-control" value="@Model.Title" required />
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Content" class="form-label fw-semibold">İçerik</label>
+            <textarea asp-for="Content" id="contentEditor" class="form-control shadow-sm" rows="10"></textarea>
+            <span asp-validation-for="Content" class="text-danger small"></span>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label fw-semibold">Mevcut Görsel</label><br />
+            <img src="~/img/@Model.ImagePath" alt="Mevcut Görsel" width="150" class="rounded shadow-sm mb-2" />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label fw-semibold">Yeni Görsel</label>
+            <input type="file" name="imageFile" accept="image/*" class="form-control" />
+        </div>
+
+        <div class="mb-4">
+            <label class="form-label fw-semibold">Kategoriler</label>
+            <div class="row">
+                @foreach (var category in categoryList!)
+                {
+                    <div class="col-md-4">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox"
+                                   name="selectedCategoryIds"
+                                   value="@category.Id"
+                                   @(Model.Categories.Any(c => c.Id == category.Id) ? "checked" : "") />
+                            <label class="form-check-label">@category.Name</label>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-success px-4">Güncelle</button>
+        <a href="/Blog/@Model.Slug" class="btn btn-outline-secondary ms-2">İptal</a>
+    </form>
+</div>
+
+@section Scripts {
+    <script src="~/lib/tinymce/tinymce.min.js"></script>
+    <script>
+        function initTinyMCE() {
+            const isDark = document.body.classList.contains("dark-mode");
+            tinymce.remove('#contentEditor');
+            tinymce.init({
+                selector: '#contentEditor',
+                height: 400,
+                menubar: true,
+                plugins: 'advlist autolink lists link image charmap preview anchor code fullscreen insertdatetime media table help wordcount',
+                toolbar: 'undo redo | blocks | bold italic underline forecolor backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image | preview code',
+                skin: isDark ? 'oxide-dark' : 'oxide',
+                content_css: isDark ? 'dark' : 'default',
+                branding: false
+            });
+        }
+
+        document.addEventListener("DOMContentLoaded", initTinyMCE);
+
+        const themeToggle = document.getElementById('themeToggle');
+        if (themeToggle) {
+            themeToggle.addEventListener("click", () => {
+                document.body.classList.toggle("dark-mode");
+                localStorage.setItem("theme", document.body.classList.contains("dark-mode") ? "dark" : "light");
+                initTinyMCE(); 
+            });
+        }
+    </script>
+}

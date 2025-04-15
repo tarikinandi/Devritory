@@ -1,0 +1,95 @@
+﻿@model List<Blog>
+@{
+    ViewData["Title"] = "Bloglarım";
+    bool isAdmin = User.IsInRole("Admin");
+}
+
+<div class="container-fluid py-5 px-4">
+    <h2 class="fw-bold mb-4">@((isAdmin ? "Tüm Bloglar" : "Bloglarım"))</h2>
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info">Henüz blog bulunmuyor.</div>
+    }
+    else
+    {
+        <div class="vstack gap-4">
+            @foreach (var blog in Model)
+            {
+                <div class="card shadow-sm rounded-4 overflow-hidden">
+                    <div class="row g-0 align-items-center">
+
+                        <!-- Sol: Görsel -->
+                        <div class="col-md-3 position-relative">
+                            <span class="badge position-absolute top-0 start-0 m-2 px-3 py-1 @(blog.IsActive ? "bg-success" : "bg-secondary")">
+                                @(blog.IsActive ? "Aktif" : "Pasif")
+                            </span>
+                            <img src="~/img/@blog.ImagePath" class="img-fluid w-100 object-fit-cover" style="height: 220px;" />
+                        </div>
+
+                        <!-- Orta: İçerik -->
+                        <div class="col-md-6 p-4 d-flex flex-column justify-content-between">
+                            <div>
+                                <h5 class="fw-bold">@blog.Title</h5>
+                                <p class="text-muted small mb-2">
+                                    @blog.Content.TruncateHtml(100)
+                                </p>
+                                <div class="mb-2">
+                                    @foreach (var cat in blog.Categories)
+                                    {
+                                        <span class="badge bg-primary bg-opacity-10 text-primary me-1">@cat.Name</span>
+                                    }
+                                </div>
+                            </div>
+                            <small class="text-muted"><i class="bi bi-calendar"></i> @blog.PublishDate.ToString("dd MMM yyyy")</small>
+                        </div>
+
+                        <!-- Sağ: Butonlar -->
+                        <div class="col-md-3 p-4 text-end d-flex flex-column justify-content-between align-items-end">
+                            <div class="d-flex gap-2">
+                                <a asp-action="Edit" asp-controller="Blog" asp-route-id="@blog.Id" class="btn btn-sm btn-warning">Düzenle</a>
+                                <form method="post" asp-action="Delete" asp-route-id="@blog.Id"
+                                      onsubmit="return confirm('Silmek istediğinize emin misiniz?')">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Sil</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<style>
+    .object-fit-cover {
+        object-fit: cover;
+    }
+
+    .card {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.05);
+        }
+
+    .card-text {
+        max-height: 100px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        line-height: 1.4;
+        display: -webkit-box;
+        -webkit-line-clamp: 4; /* 4 satırda sınırla */
+        -webkit-box-orient: vertical;
+    }
+
+    .card.h-100 {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+</style>

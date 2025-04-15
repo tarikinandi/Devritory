@@ -1,0 +1,106 @@
+﻿@model List<Blog>
+@using BlogProject.Web.HtmlHelpers
+
+@{
+    ViewData["Title"] = "Blog Yönetimi";
+}
+
+<div class="container-fluid py-5 px-4">
+    <h2 class="fw-bold mb-4 text-primary"><i class="bi bi-kanban"></i> Tüm Bloglar</h2>
+
+    <div class="vstack gap-4">
+        @foreach (var blog in Model)
+        {
+            <div class="card shadow-sm rounded-4 overflow-hidden">
+                <div class="row g-0 align-items-center">
+
+                    <!-- Sol: Görsel -->
+                    <div class="col-md-3 position-relative image-hover-container">
+                        <span class="badge position-absolute top-0 start-0 m-2 px-3 py-1 @(blog.IsActive ? "bg-success" : "bg-danger")">
+                            <i class="bi @(blog.IsActive ? "bi-check-circle" : "bi-x-circle") me-1"></i>
+                            @(blog.IsActive ? "Aktif" : "Pasif")
+                        </span>
+                        <img src="~/img/@blog.ImagePath" class="img-fluid w-100 object-fit-cover h-100 image-hover-effect" style="max-height: 220px;" alt="@blog.Title" />
+                    </div>
+
+                    <!-- Orta: İçerik -->
+                    <div class="col-md-6 p-4 d-flex flex-column justify-content-between">
+                        <div>
+                            <h5 class="fw-bold mb-2">@blog.Title</h5>
+                            <p class="text-muted small mb-1"><i class="bi bi-calendar3 me-1"></i> @blog.PublishDate.ToString("dd MMM yyyy") - @blog.User?.UserName</p>
+                            <div class="mb-2">
+                                @foreach (var cat in blog.Categories)
+                                {
+                                    <span class="badge bg-primary bg-opacity-10 text-primary border border-primary me-1">@cat.Name</span>
+                                }
+                            </div>
+                            <p class="text-secondary small mb-0">
+                                @blog.Content.TruncateHtml(100)
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Sağ: İşlemler -->
+                    <div class="col-md-3 p-4 text-end d-flex flex-column justify-content-between align-items-end">
+                        <div class="dropdown mb-2">
+                            <button class="btn btn-outline-secondary dropdown-toggle btn-sm" type="button" data-bs-toggle="dropdown">
+                                İşlemler
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li>
+                                    <a class="dropdown-item text-warning" asp-controller="Blog" asp-action="Edit" asp-route-id="@blog.Id">
+                                        <i class="bi bi-pencil-square me-1"></i> Düzenle
+                                    </a>
+                                </li>
+                                <li>
+                                    <form method="post" asp-controller="Blog" asp-action="Delete" asp-route-id="@blog.Id"
+                                          onsubmit="return confirm('Silmek istediğinize emin misiniz?')">
+                                        <button type="submit" class="dropdown-item text-danger">
+                                            <i class="bi bi-trash me-1"></i> Sil
+                                        </button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <form method="post" asp-controller="Blog" asp-action="ToggleActive" asp-route-id="@blog.Id">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox"
+                                       onchange="this.form.submit()" @(blog.IsActive ? "checked" : "") />
+                                <label class="form-check-label small">Aktif</label>
+                            </div>
+                        </form>
+                    </div>
+
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<style>
+    .object-fit-cover {
+        object-fit: cover;
+    }
+
+    .card {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
+        }
+
+    .image-hover-container {
+        overflow: hidden;
+    }
+
+    .image-hover-effect {
+        transition: transform 0.4s ease;
+    }
+
+    .image-hover-container:hover .image-hover-effect {
+        transform: scale(1.05);
+    }
+</style>

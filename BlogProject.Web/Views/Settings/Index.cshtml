@@ -1,0 +1,130 @@
+﻿@model SettingsViewModel
+@using BlogProject.Web.Models
+@{
+    ViewData["Title"] = "Ayarlar";
+}
+
+<link href="https://cdn.jsdelivr.net/npm/animate.css@4.1.1/animate.min.css" rel="stylesheet" />
+
+<div class="container py-5 px-4 animate__animated animate__fadeIn">
+    <h2 class="mb-4 text-center fw-bold text-primary">
+        <i class="bi bi-gear-fill me-2"></i> Hesap Ayarları
+    </h2>
+
+    <ul class="nav nav-tabs mb-4" id="settingsTab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="profile-tab" data-bs-toggle="tab" data-bs-target="#profile" type="button" role="tab">Profil Bilgileri</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="password-tab" data-bs-toggle="tab" data-bs-target="#password" type="button" role="tab">Şifre Güncelle</button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="settingsTabContent">
+        <div class="tab-pane fade show active" id="profile" role="tabpanel">
+            <form id="profileForm" method="post" enctype="multipart/form-data" asp-action="UpdateProfile" class="card border-0 shadow rounded-4 p-4">
+                <div class="mb-3">
+                    <label asp-for="FullName" class="form-label">Ad Soyad</label>
+                    <input asp-for="FullName" class="form-control" />
+                    <span asp-validation-for="FullName" class="text-danger small"></span>
+                </div>
+                <div class="mb-3">
+                    <label asp-for="Email" class="form-label">E-posta</label>
+                    <input asp-for="Email" class="form-control" />
+                    <span asp-validation-for="Email" class="text-danger small"></span>
+                </div>
+                <div class="mb-3">
+                    <label asp-for="ProfileImage" class="form-label">Profil Fotoğrafı</label>
+                    <input asp-for="ProfileImage" class="form-control" type="file" />
+                    <span asp-validation-for="ProfileImage" class="text-danger small"></span>
+                    @if (!string.IsNullOrEmpty(Model.ExistingImagePath))
+                    {
+                        <div class="mt-2">
+                            <img src="/img/@Model.ExistingImagePath" alt="Profil" class="img-thumbnail" width="100" height="100" />
+                        </div>
+                    }
+                </div>
+                <button type="submit" class="btn btn-primary px-4 rounded-pill">
+                    <i class="bi bi-save me-1"></i> Kaydet
+                </button>
+            </form>
+        </div>
+
+        <div class="tab-pane fade" id="password" role="tabpanel">
+            <form id="passwordForm" method="post" asp-action="ChangePassword" class="card border-0 shadow rounded-4 p-4 mt-4">
+                <div class="mb-3">
+                    <label class="form-label">Mevcut Şifre</label>
+                    <input name="CurrentPassword" type="password" class="form-control" required />
+                    <span class="text-danger small" data-valmsg-for="CurrentPassword"></span>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Yeni Şifre</label>
+                    <input name="NewPassword" type="password" class="form-control" id="newPassword" required />
+                    <span class="text-danger small" data-valmsg-for="NewPassword"></span>
+                    <div class="form-text" id="passwordStrength"></div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Yeni Şifre (Tekrar)</label>
+                    <input name="ConfirmNewPassword" type="password" class="form-control" required />
+                    <span class="text-danger small" data-valmsg-for="ConfirmNewPassword"></span>
+                </div>
+                <button type="submit" class="btn btn-warning px-4 rounded-pill">
+                    <i class="bi bi-lock-fill me-1"></i> Şifreyi Güncelle
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        const triggerTabList = document.querySelectorAll('#settingsTab button')
+        triggerTabList.forEach(triggerEl => {
+            const tabTrigger = new bootstrap.Tab(triggerEl)
+            triggerEl.addEventListener('click', event => {
+                event.preventDefault()
+                tabTrigger.show()
+            })
+        });
+
+        document.getElementById('profileForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            fetch('/Settings/UpdateProfile', {
+                method: 'POST',
+                body: formData
+            }).then(res => res.json())
+              .then(data => {
+                  alert(data.message);
+                  if (data.success) location.reload();
+              });
+        });
+
+        document.getElementById('passwordForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            fetch('/Settings/ChangePassword', {
+                method: 'POST',
+                body: formData
+            }).then(res => res.json())
+              .then(data => {
+                  alert(data.message);
+                  if (data.success) location.reload();
+              });
+        });
+
+        document.getElementById('newPassword').addEventListener('input', function () {
+            const val = this.value;
+            let strength = 'Zayıf';
+            if (val.length >= 8 && /[A-Z]/.test(val) && /\d/.test(val) && /[^\w\s]/.test(val)) {
+                strength = 'Güçlü';
+            } else if (val.length >= 6 && /[A-Z\d]/.test(val)) {
+                strength = 'Orta';
+            }
+            const text = document.getElementById('passwordStrength');
+            text.textContent = `Şifre Gücü: ${strength}`;
+            text.className = 'form-text ' + (strength === 'Güçlü' ? 'text-success' : strength === 'Orta' ? 'text-warning' : 'text-danger');
+        });
+    </script>
+}

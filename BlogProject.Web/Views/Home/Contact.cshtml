@@ -1,0 +1,134 @@
+﻿@model ContactViewModel
+@{
+    ViewData["Title"] = "İletişim";
+}
+
+<link href="https://cdn.jsdelivr.net/npm/animate.css@4.1.1/animate.min.css" rel="stylesheet" />
+<script src="https://www.google.com/recaptcha/api.js" async defer></script>
+
+<div class="container-fluid py-5 px-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="text-center mb-5">
+                <div class="bg-primary bg-opacity-10 rounded-pill d-inline-block px-4 py-2 animate__animated animate__fadeInDown">
+                    <h1 class="fw-bold text-primary mb-0">
+                        <i class="bi bi-envelope-paper-heart-fill me-2"></i> Bize Ulaşın
+                    </h1>
+                </div>
+                <p class="text-muted mt-3">Aşağıdaki formu doldurarak bizimle iletişime geçebilirsiniz. Görüşlerinize değer veriyoruz 💬</p>
+            </div>
+
+            @if (ViewBag.Success != null)
+            {
+                <div class="alert alert-success alert-dismissible fade show shadow-sm animate__animated animate__fadeIn" role="alert">
+                    <i class="bi bi-check-circle-fill me-2"></i> Mesajınız başarıyla gönderildi!
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Kapat"></button>
+                </div>
+            }
+
+            <div class="card shadow-lg rounded-4 border-0 animate__animated animate__fadeInUp">
+                <div class="card-body p-5 bg-white dark-mode-card">
+                    <form method="post" id="contactForm">
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold text-muted">Adınız</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="bi bi-person-fill text-primary"></i></span>
+                                <input type="text" name="name" class="form-control" placeholder="Ad Soyad" required />
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold text-muted">E-posta</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="bi bi-envelope-at-fill text-primary"></i></span>
+                                <input type="email" name="email" class="form-control" placeholder="ornek@mail.com" required />
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold text-muted">Konu</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="bi bi-chat-left-dots-fill text-primary"></i></span>
+                                <input type="text" name="subject" class="form-control" placeholder="Mesaj konusu..." required />
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold text-muted">Mesaj</label>
+                            <textarea name="message" class="form-control shadow-sm" rows="5" placeholder="Mesajınızı buraya yazın..." required></textarea>
+                        </div>
+
+                        <div class="mb-4">
+                            <div class="g-recaptcha" data-sitekey="6LdilRQrAAAAAA5HjVoFUwii-oZyuNj1rgT60ZYK"></div>
+                        </div>
+
+                        <div class="text-end">
+                            <button type="submit" class="btn btn-primary px-5 py-2 rounded-pill shadow-sm fw-semibold animate__animated animate__fadeInRight" id="submitBtn">
+                                <span id="submitSpinner" class="spinner-border spinner-border-sm d-none me-2" role="status" aria-hidden="true"></span>
+                                <i class="bi bi-send-fill me-1"></i> Gönder
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="mt-5 rounded-4 overflow-hidden shadow-sm animate__animated animate__fadeInUp" style="height: 400px;">
+                <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d12252.658922297352!2d29.918576401398773!3d40.82569487083557!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x14cb519eec76d7fb%3A0x178db9a8009ef563!2zS29jYWVsaSBVbsSxbHZlcnNpdGVzaQ!5e0!3m2!1str!2str!4v1712834179252"
+                        width="100%" height="100%" style="border:0;" allowfullscreen loading="lazy" referrerpolicy="no-referrer-when-downgrade">
+                </iframe>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.getElementById("contactForm").addEventListener("submit", function () {
+            const btn = document.getElementById("submitBtn");
+            const spinner = document.getElementById("submitSpinner");
+            btn.disabled = true;
+            spinner.classList.remove("d-none");
+        });
+    </script>
+}
+
+<style>
+    body.dark-mode .card-body {
+        background-color: #2c2c2c !important;
+        color: #e0e0e0;
+    }
+
+    .input-group-text {
+        border-radius: 0.5rem 0 0 0.5rem;
+    }
+
+    .form-control:focus {
+        box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+    }
+
+    .btn-primary:hover {
+        background-color: #0b5ed7;
+        box-shadow: 0 0.5rem 1rem rgba(13, 110, 253, 0.3);
+    }
+
+    body.dark-mode .form-control {
+        background-color: #2c2c2c;
+        color: #f1f1f1;
+        border-color: #555;
+    }
+
+    body.dark-mode .input-group-text {
+        background-color: #3a3a3a;
+        color: #fff;
+    }
+
+    body.dark-mode textarea.form-control {
+        background-color: #2c2c2c;
+    }
+
+    body.dark-mode .btn-primary:hover {
+        background-color: #90caf9;
+        color: #121212;
+    }
+</style>

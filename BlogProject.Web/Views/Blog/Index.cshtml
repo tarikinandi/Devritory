@@ -1,0 +1,215 @@
+﻿@model List<Blog>
+@{
+    ViewData["Title"] = "Bloglar";
+}
+
+<div class="container-fluid px-3 px-md-4 px-lg-5 py-5">
+    <div class="row">
+        <div class="col-lg-3 mb-4 d-none d-lg-block">
+            @await Component.InvokeAsync("CategoryMenu")
+            @await Component.InvokeAsync("LatestPosts")
+        </div>
+
+        <div class="col-lg-9">
+            @{
+                var breadcrumbs = new List<(string Text, string? Url)>
+                        {
+                        ("Blog Yazıları", null)
+                        };
+            }
+            @await Component.InvokeAsync("Breadcrumb", breadcrumbs)
+
+            <div class="accordion mb-4" id="filterAccordion">
+                <div class="accordion-item border-0 shadow-sm rounded-4">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse">
+                            🔍 Filtrele
+                        </button>
+                    </h2>
+                    <div id="filterCollapse" class="accordion-collapse collapse show">
+                        <div class="accordion-body">
+                            <form method="get" class="row gy-2 gx-3 align-items-end" id="filterForm">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold">Anahtar Kelime</label>
+                                    <input type="text" name="query" class="form-control" value="@ViewBag.Query" placeholder="Kelime ara...">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label fw-semibold">Kategori</label>
+                                    <select name="categoryId" class="form-select">
+                                        <option value="">Tümü</option>
+                                        @foreach (var category in ViewBag.Categories as List<Category>)
+                                        {
+                                            <option value="@category.Id" selected="@((int?)ViewBag.CategoryId == category.Id)">@category.Name</option>
+                                        }
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label fw-semibold">Başlangıç</label>
+                                    <input type="date" name="startDate" class="form-control" value="@ViewBag.StartDate">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label fw-semibold">Bitiş</label>
+                                    <input type="date" name="endDate" class="form-control" value="@ViewBag.EndDate">
+                                </div>
+                                <div class="col-md-1 d-grid">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="bi bi-funnel-fill"></i>
+                                    </button>
+                                </div>
+                                <div class="col-12 d-flex justify-content-end">
+                                    <a href="/Blog" class="btn btn-sm btn-outline-secondary">
+                                        <i class="bi bi-x-circle"></i> Filtreleri Temizle
+                                    </a>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <h2 class="fw-bold mb-4 border-bottom pb-2">
+                @(ViewBag.SelectedCategory != null ? ViewBag.SelectedCategory : "Blog Yazıları")
+            </h2>
+
+            @if (Model != null && Model.Any())
+            {
+                foreach (var blog in Model)
+                {
+                    <div class="card mb-4 border-0 shadow-sm rounded-4 blog-card position-relative overflow-hidden">
+                        <div class="row g-0">
+                            <div class="col-md-4">
+                                <div class="position-relative h-100 w-100">
+                                    <div class="card-img-container">
+                                        <img src="~/img/@blog.ImagePath" class="img-fluid w-100" alt="@blog.Title">
+                                    </div>
+                                    <div class="position-absolute top-0 start-0 m-2">
+                                        @foreach (var category in blog.Categories.Take(1))
+                                        {
+                                            <span class="badge bg-primary bg-opacity-75 text-white">@category.Name</span>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-8">
+                                <div class="card-body">
+                                    <h5 class="card-title mb-2">
+                                        <a href="/Blog/@blog.Slug" class="text-dark text-decoration-none stretched-link fw-bold">
+                                            @blog.Title
+                                        </a>
+                                    </h5>
+                                    <p class="text-muted small mb-2">@blog.PublishDate.ToString("dd MMM yyyy")</p>
+                                    <p class="card-text mb-2 text-secondary">
+                                        @blog.Content.TruncateHtml(160)
+                                    </p>
+
+                                    <div>
+                                        @foreach (var category in blog.Categories)
+                                        {
+                                            <a href="/Blog/Category/@category.Id" class="badge bg-light text-primary border border-primary me-1">
+                                                @category.Name
+                                            </a>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <hr>
+                }
+
+                <nav class="mt-4">
+                    <ul class="pagination justify-content-center flex-wrap">
+                        @for (int i = 1; i <= (int)ViewBag.TotalPages; i++)
+                        {
+                            var query = ViewBag.Query;
+                            var categoryId = ViewBag.CategoryId;
+                            var startDate = ViewBag.StartDate;
+                            var endDate = ViewBag.EndDate;
+
+                            var url = $"/Blog?query={query}&categoryId={categoryId}&startDate={startDate}&endDate={endDate}&page={i}";
+
+                            <li class="page-item @(ViewBag.CurrentPage == i ? "active" : "")">
+                                <a class="page-link" href="@url">@i</a>
+                            </li>
+                        }
+                    </ul>
+                </nav>
+            }
+            else
+            {
+                <div class="alert alert-warning text-center fw-semibold py-4 rounded-4 shadow-sm" role="alert">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    Bu kategoriye ait herhangi bir blog yazısı bulunamadı.
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.querySelectorAll('#filterForm input, #filterForm select').forEach(element => {
+            element.addEventListener('change', () => {
+                document.getElementById('filterForm').submit();
+            });
+        });
+    </script>
+}
+
+<style>
+    .blog-card {
+        transition: all 0.3s ease-in-out;
+    }
+
+        .blog-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 0.75rem 1.5rem rgba(0, 0, 0, 0.1);
+        }
+
+        .blog-card .card-img-container {
+            height: 100%;
+            aspect-ratio: 4 / 3;
+            overflow: hidden;
+            border-top-left-radius: .5rem;
+            border-bottom-left-radius: .5rem;
+        }
+
+        .blog-card img {
+            height: 100%;
+            width: 100%;
+            object-fit: cover;
+        }
+
+    .object-fit-cover {
+        object-fit: cover;
+    }
+
+    @@media(max - width: 768px) {
+        .blog-card .row {
+            flex-direction: column;
+        }
+    }
+
+    body.dark-mode .pagination .page-link {
+        background-color: #1e1e1e;
+        color: #ddd;
+        border-color: #333;
+    }
+
+        body.dark-mode .pagination .page-link:hover {
+            background-color: #2d2d2d;
+            color: #fff;
+        }
+
+    body.dark-mode .pagination .page-item.active .page-link {
+        background-color: #0d6efd;
+        border-color: #0d6efd;
+        color: #fff;
+    }
+
+    body.dark-mode .alert-warning {
+        background-color: #2b2b2b;
+        color: #ffc107;
+        border-color: #444;
+    }
+</style>

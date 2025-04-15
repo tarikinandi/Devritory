@@ -1,0 +1,344 @@
+﻿@using System.Security.Claims
+@model Blog
+
+@{
+    var breadcrumbs = new List<(string Text, string? Url)>
+    {
+        ("Bloglar", Url.Action("Index", "Blog")),
+        (Model.Title, null)
+    };
+}
+
+@{
+    var currentUserId = User.Identity?.IsAuthenticated == true
+        ? int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value)
+        : 0;
+    var isAdmin = User.IsInRole("Admin");
+}
+@{
+    ViewBag.AllComments = Model.Comments;
+    var topLevelComments = Model.Comments.Where(c => c.ParentCommentId == null).ToList();
+}
+
+<div class="container-fluid py-5 px-4">
+    <div class="row">
+        <div class="col-lg-8">
+            @await Component.InvokeAsync("Breadcrumb", breadcrumbs)
+           
+
+            <div class="mb-4 rounded overflow-hidden shadow-sm">
+                <img src="~/img/@Model.ImagePath" class="w-100" style="max-height: 450px; object-fit: cover;" alt="@Model.Title" />
+            </div>
+
+            <div class="mb-4">
+                <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                    <h1 class="fw-bold m-0">@Model.Title</h1>
+                    <button id="downloadPdfBtn" class="btn btn-outline-secondary">
+                        <i class="bi bi-file-earmark-pdf"></i> PDF olarak indir
+                    </button>
+                </div>
+
+                <div class="text-muted small d-flex align-items-center flex-wrap mt-2">
+                    <span class="me-3" data-bs-toggle="tooltip" data-bs-placement="top"
+                          title="@Model.PublishDate.ToString("dd MMMM yyyy HH:mm")">
+                        <i class="bi bi-calendar-event"></i>
+                        <span class="relative-time" data-time="@Model.PublishDate.ToString("o")">Yükleniyor...</span>
+                    </span>
+
+                    <span class="me-3"><i class="bi bi-person-circle"></i> @Model.User?.UserName</span>
+                    <span class="me-3"><i class="bi bi-eye"></i> @Model.ViewCount görüntülenme</span>
+                </div>
+            </div>
+
+
+            <div class="mb-4">
+                @foreach (var category in Model.Categories)
+                {
+                    <a href="/Blog/Category/@category.Id" class="badge bg-primary bg-opacity-10 text-primary fw-semibold me-2">
+                        @category.Name
+                    </a>
+                }
+            </div>
+
+            <div class="blog-content bg-white dark-mode-card shadow-sm rounded-4 p-4 mb-5 fs-5 lh-lg">
+                @Html.Raw(Model.Content)
+            </div>
+
+
+            <div id="commentsSection" class="bg-white dark-mode-card rounded-4 p-4 shadow-sm mb-5">
+                <h4 class="fw-bold mb-4 border-bottom pb-2">
+                    Yorumlar
+                    @if (Model.Comments?.Any() == true)
+                    {
+                        <span class="badge bg-secondary bg-opacity-25 text-dark ms-2">
+                            @Model.Comments.Count yorum yapıldı
+                        </span>
+                    }
+                </h4>
+
+                @if (Model.Comments?.Any() == true)
+                {
+                    @await Html.PartialAsync("~/Views/Shared/_RepliesPartial.cshtml", topLevelComments)
+                }
+                else
+                {
+                    <p class="text-muted">Henüz yorum yapılmamış.</p>
+                }
+
+            @if (User.Identity?.IsAuthenticated == true)
+            {
+                <div class="bg-white dark-mode-card rounded-4 p-4 shadow-sm mb-5">
+                    <h4 class="fw-bold mb-4 border-bottom pb-2">Yorum Yap</h4>
+
+                        <form id="commentForm" method="post">
+                            <input type="hidden" name="blogId" value="@Model.Id" />
+                        <div class="mb-3">
+                            <label for="content" class="form-label fw-semibold">Yorumunuz</label>
+                            <textarea name="content" class="form-control rounded-3 shadow-sm" rows="4" placeholder="Yorum yapınız..." required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary px-4">Gönder</button>
+                    </form>
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-warning mt-3">
+                    <i class="bi bi-exclamation-circle me-2"></i> Yorum yapmak için giriş yapmalısınız.
+                    <a href="/User/Login" class="ms-2 btn btn-sm btn-outline-primary">Giriş Yap</a>
+                </div>
+            }
+
+            <div class="text-end">
+                <a href="/Blog" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Geri dön
+                </a>
+            </div>
+            </div>
+
+        </div>
+        <div class="col-lg-4 d-none d-lg-block">
+            @await Component.InvokeAsync("CategoryMenu")
+            @await Component.InvokeAsync("LatestPosts")
+        </div>
+    </div>
+
+</div>
+
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(function () {
+            $('#commentForm').submit(function (e) {
+                e.preventDefault();
+
+                const formData = $(this).serialize();
+
+                $.post('/Blog/AddComment', formData, function (data) {
+                    const formattedDate = new Date(data.commentDate).toLocaleString('tr-TR');
+
+                    const newComment = $(`
+        <div class="mb-4 pb-3 border-bottom comment-block d-flex" id="main-comment-${data.id}" style="display: none;">
+                                    <img src="/img/${data.user.imagePath ?? 'default.png'}" class="rounded-circle me-3" width="45" height="45" alt="Profil" />
+                            <div class="w-100">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <strong class="text-primary">${data.user.userName}</strong>
+                                    <small class="text-muted">${formattedDate}</small>
+                                </div>
+                                <p class="mb-0 text-secondary">${data.content}</p>
+                                <a href="#" class="reply-link small text-primary d-block mt-1" data-id="${data.id}">Yanıtla</a>
+
+                                <div class="reply-form d-none mt-3" id="reply-form-${data.id}">
+                                    <form asp-action="AddReplyComment" method="post">
+                                        <input type="hidden" name="BlogId" value="${$('input[name="blogId"]').val()}" />
+                                        <input type="hidden" name="ParentCommentId" value="${data.id}" />
+                                        <textarea name="Content" class="form-control mb-2" rows="3" placeholder="Yanıt yaz..." required></textarea>
+                                        <button type="submit" class="btn btn-sm btn-primary">Gönder</button>
+                                    </form>
+                                </div>
+
+                                ${(data.isOwner || data.isAdmin) ? `
+                                    <div class="d-flex justify-content-end gap-2 mt-2">
+                                        <button class="btn btn-sm btn-outline-primary btn-edit-comment" data-id="${data.id}" data-content="${data.content}">
+                                            <i class="bi bi-pencil-square"></i> Düzenle
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger btn-delete-comment" data-comment-id="${data.id}">
+                                            <i class="bi bi-trash"></i> Sil
+                                        </button>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `);
+
+                    $('#commentsSection .comment-block').first().before(newComment);
+                    newComment.fadeIn(300);
+                    $('[name="content"]').val('');
+                });
+            });
+        });
+    </script>
+    <script>
+        $(document).on("click", ".btn-delete-comment", function () {
+            const commentId = $(this).data("comment-id");
+
+            if (!confirm("Yorumu silmek istiyor musunuz?")) return;
+
+                $.post(`/Blog/DeleteComment`, { id: commentId })
+        .done(() => {
+            localStorage.setItem("scrollY", window.scrollY);
+
+            location.reload();
+        })
+        .fail(() => {
+            alert("Yorum silinirken bir hata oluştu.");
+        });
+        });
+    </script>
+    <script>
+        const editModal = new bootstrap.Modal(document.getElementById('editCommentModal'));
+        const editForm = document.getElementById('editCommentForm');
+        const editInput = document.getElementById('editCommentContent');
+        const editId = document.getElementById('editCommentId');
+
+        $(document).on("click", ".btn-edit-comment", function () {
+            const id = $(this).data("id");
+            const content = $(this).data("content");
+
+            editInput.value = content;
+            editId.value = id;
+
+            editModal.show();
+        });
+
+                     $(editForm).submit(function (e) {
+            e.preventDefault();
+
+            const data = $(this).serialize();
+
+            $.post('/Blog/EditComment', data)
+                .done(function () {
+                    const newContent = editInput.value;
+                    const commentId = editId.value;
+
+                    const commentElement = $(`.btn-edit-comment[data-id="${commentId}"]`).closest('.comment-block');
+
+                    commentElement.find('p.text-dark').text(newContent);
+
+                    commentElement.find(`.btn-edit-comment[data-id="${commentId}"]`).data("content", newContent);
+
+                    $(`.btn-edit-comment[data-id="${commentId}"]`).data("content", newContent);
+
+                    editModal.hide();
+                })
+                .fail(function () {
+                    alert("Yorum güncellenemedi.");
+                });
+        });
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script>
+        document.getElementById('downloadPdfBtn').addEventListener('click', async () => {
+            const { jsPDF } = window.jspdf;
+
+            const blogElement = document.querySelector('.blog-content');
+
+            const canvas = await html2canvas(blogElement, {
+                scale: 2,
+                backgroundColor: "#ffffff"
+            });
+
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF("p", "mm", "a4");
+
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            const pageHeight = pdf.internal.pageSize.getHeight();
+
+            const imgProps = pdf.getImageProperties(imgData);
+            const pdfWidth = pageWidth - 20;
+            const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+            pdf.addImage(imgData, 'PNG', 10, 10, pdfWidth, pdfHeight);
+            pdf.save("blog-detay.pdf");
+        });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/relativeTime.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/locale/tr.js"></script>
+    <script>
+        dayjs.extend(dayjs_plugin_relativeTime);
+        dayjs.locale("tr");
+    </script>
+    <script>
+        document.querySelectorAll(".relative-time").forEach(el => {
+            const isoTime = el.parentElement.getAttribute("data-time") || el.getAttribute("data-time");
+            if (isoTime) {
+                el.textContent = dayjs(isoTime).fromNow();
+            }
+        });
+    </script>
+    <script>
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        const tooltipList = tooltipTriggerList.map(el => new bootstrap.Tooltip(el));
+
+        document.querySelectorAll(".relative-time").forEach(el => {
+            const isoTime = el.dataset.time;
+            if (isoTime) {
+                el.textContent = dayjs(isoTime).fromNow();
+            }
+        });
+    </script>
+}
+
+<style>
+    .btn-delete-comment {
+        font-size: 0.75rem;
+        padding: 4px 8px;
+        border-radius: 1rem;
+    }
+
+    .comment-block {
+        position: relative;
+        background-color: #f9f9f9;
+        border-radius: 0.5rem;
+    }
+
+    body.dark-mode .comment-block {
+        background-color: #2b2b2b;
+    }
+
+    body.dark-mode .btn-delete-comment {
+        border-color: #dc3545;
+        color: #dc3545;
+    }
+
+        body.dark-mode .btn-delete-comment:hover {
+            background-color: #dc3545;
+            color: white;
+        }
+</style>
+
+
+<div class="modal fade" id="editCommentModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editModalLabel">Yorumu Düzenle</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editCommentForm">
+                    <input type="hidden" name="id" id="editCommentId" />
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <label for="editCommentContent" class="form-label fw-semibold">Yorumunuz</label>
+                    </div>
+                <textarea name="content" class="form-control" id="editCommentContent" rows="4" required></textarea>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+                <button type="submit" class="btn btn-primary" form="editCommentForm">Güncelle</button>
+            </div>
+        </div>
+    </div>
+</div>

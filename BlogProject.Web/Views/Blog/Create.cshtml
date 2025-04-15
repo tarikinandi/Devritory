@@ -1,0 +1,110 @@
+﻿@model BlogCreateViewModel
+
+@{
+    ViewData["Title"] = "Yeni Blog Oluştur";
+}
+
+<div class="container-fluid py-5 px-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="bg-white dark-mode-card rounded-4 shadow p-5 border border-light-subtle dark:border-secondary">
+                <h2 class="fw-bold text-center mb-4">
+                    <i class="bi bi-pencil-square me-2"></i>Yeni Blog Oluştur
+                </h2>
+
+                <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
+                    <!-- Başlık -->
+                    <div class="mb-4">
+                        <label asp-for="Title" class="form-label fw-semibold">📌 Başlık</label>
+                        <input asp-for="Title" class="form-control rounded-3 shadow-sm focus-ring" placeholder="Örn: .NET Core Nedir?" />
+                        <span asp-validation-for="Title" class="text-danger small"></span>
+                    </div>
+
+                    <!-- İçerik -->
+                    <div class="mb-4">
+                        <label asp-for="Content" class="form-label fw-semibold">📝 İçerik</label>
+                        <textarea asp-for="Content" id="contentEditor" class="form-control shadow-sm rounded-3" rows="10"></textarea>
+                        <span asp-validation-for="Content" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Kategoriler -->
+                    <div class="mb-4">
+                        <label asp-for="SelectedCategoryIds" class="form-label fw-semibold">📚 Kategoriler</label>
+                        <select asp-for="SelectedCategoryIds" asp-items="ViewBag.Categories" class="form-select shadow-sm rounded-3" multiple size="4">
+                        </select>
+                        <span asp-validation-for="SelectedCategoryIds" class="text-danger small"></span>
+                        <div class="form-text">Birden fazla kategori seçebilirsiniz.</div>
+                    </div>
+
+                    <!-- Görsel -->
+                    <div class="mb-4">
+                        <label asp-for="Image" class="form-label fw-semibold">🖼️ Kapak Görseli</label>
+                        <input asp-for="Image" class="form-control shadow-sm rounded-3" type="file" onchange="previewImage(event)" />
+                        <span asp-validation-for="Image" class="text-danger small"></span>
+                        <div class="mt-3 text-center">
+                            <img id="imagePreview" src="#" alt="Görsel Önizleme" class="img-fluid rounded shadow-sm d-none border border-2" style="max-height: 300px;" />
+                        </div>
+                    </div>
+
+                    <!-- Kaydet Butonu -->
+                    <div class="text-end">
+                        <button type="submit" class="btn btn-primary px-5 py-2 rounded-pill shadow-sm fw-semibold">
+                            <i class="bi bi-check-circle me-1"></i>Blogu Kaydet
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    <script src="~/lib/tinymce/tinymce.min.js"></script>
+    <script>
+        function initTinyMCE() {
+            const isDark = document.body.classList.contains("dark-mode");
+            tinymce.remove('#contentEditor');
+            tinymce.init({
+                selector: '#contentEditor',
+                height: 400,
+                menubar: true,
+                plugins: 'advlist autolink lists link image charmap preview anchor code fullscreen insertdatetime media table help wordcount',
+                toolbar: 'undo redo | blocks | bold italic underline forecolor backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image | preview code',
+                skin: isDark ? 'oxide-dark' : 'oxide',
+                content_css: isDark ? 'dark' : 'default',
+                branding: false
+            });
+        }
+
+        document.addEventListener("DOMContentLoaded", initTinyMCE);
+
+        const themeToggle = document.getElementById('themeToggle');
+        if (themeToggle) {
+            themeToggle.addEventListener("click", () => {
+                document.body.classList.toggle("dark-mode");
+                localStorage.setItem("theme", document.body.classList.contains("dark-mode") ? "dark" : "light");
+                initTinyMCE(); 
+            });
+        }
+    </script>
+
+    <!-- Görsel Önizleme -->
+    <script>
+        function previewImage(event) {
+            const input = event.target;
+            const preview = document.getElementById('imagePreview');
+
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    preview.src = e.target.result;
+                    preview.classList.remove("d-none");
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+    </script>
+}
+

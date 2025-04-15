@@ -1,0 +1,145 @@
+﻿@model List<Category>
+@{
+    ViewData["Title"] = "Kategori Yönetimi";
+}
+
+<div class="container-fluid py-5 px-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold text-primary"><i class="bi bi-folder2-open"></i> Kategori Yönetimi</h2>
+        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addModal">
+            <i class="bi bi-plus-circle me-1"></i> Yeni Kategori
+        </button>
+    </div>
+
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4" id="categoryList">
+        @foreach (var category in Model)
+        {
+            <div class="col">
+                <div class="card h-100 border-0 shadow-sm rounded-4 position-relative category-card">
+                    <div class="card-body d-flex flex-column justify-content-between">
+                        <div class="mb-3">
+                            <h5 class="card-title text-primary fw-bold">
+                                <i class="bi bi-folder-fill me-2"></i> @category.Name
+                            </h5>
+                            <p class="text-muted small">Kategori ID: @category.Id</p>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <button class="btn btn-sm btn-outline-warning w-100 me-2"
+                                    onclick="openEditModal(@category.Id, '@category.Name')">
+                                <i class="bi bi-pencil-square me-1"></i> Düzenle
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger w-100"
+                                    onclick="deleteCategory(@category.Id)">
+                                <i class="bi bi-trash me-1"></i> Sil
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+<!-- Kategori Ekle Modal -->
+<div class="modal fade" id="addModal" tabindex="-1" aria-labelledby="addModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content shadow">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addModalLabel">Yeni Kategori Ekle</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="newCategoryName" class="form-control" placeholder="Kategori Adı" />
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+                <button class="btn btn-success" onclick="createCategory()">Kaydet</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Kategori Düzenle Modal -->
+<div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content shadow">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editModalLabel">Kategoriyi Düzenle</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editCategoryId" />
+                <input type="text" id="editCategoryName" class="form-control" />
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+                <button class="btn btn-primary" onclick="editCategory()">Güncelle</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function createCategory() {
+            const name = $('#newCategoryName').val();
+            if (!name.trim()) return;
+
+            $.post('/Admin/CreateCategoryAjax', { name }, function (res) {
+                if (res.success) {
+                    location.reload();
+                } else {
+                    alert("Kategori eklenemedi.");
+                }
+            });
+        }
+
+        function openEditModal(id, name) {
+            $('#editCategoryId').val(id);
+            $('#editCategoryName').val(name);
+            var modal = new bootstrap.Modal(document.getElementById('editModal'));
+            modal.show();
+        }
+
+        function editCategory() {
+            const id = $('#editCategoryId').val();
+            const name = $('#editCategoryName').val();
+            if (!name.trim()) return;
+
+            $.post('/Admin/EditCategoryAjax', { id, name }, function (res) {
+                if (res.success) {
+                    location.reload();
+                } else {
+                    alert("Kategori güncellenemedi.");
+                }
+            });
+        }
+
+        function deleteCategory(id) {
+            if (!confirm("Kategoriyi silmek istediğinizden emin misiniz?")) return;
+
+            $.post('/Admin/DeleteCategoryAjax', { id }, function (res) {
+                if (res.success) {
+                    location.reload();
+                } else {
+                    alert("Kategori silinemedi.");
+                }
+            });
+        }
+    </script>
+}
+
+    <style>
+        .category-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 0.75rem 1.5rem rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+        }
+
+        .category-card .card-title i {
+            color: #0d6efd;
+        }
+
+        .modal .form-control:focus {
+            box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+        }
+    </style>

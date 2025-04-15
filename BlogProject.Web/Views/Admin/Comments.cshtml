@@ -1,0 +1,102 @@
+﻿@model List<Comment>
+@using BlogProject.Web.HtmlHelpers
+
+@{
+    ViewData["Title"] = "Yorum Yönetimi";
+    var grouped = Model
+        .Where(c => c.Blog != null)
+        .GroupBy(c => c.Blog.Id)
+        .OrderByDescending(g => g.Max(x => x.CommentDate))
+        .ToList();
+}
+
+<div class="container-fluid py-5 px-4">
+    <h2 class="fw-bold mb-4 text-primary"><i class="bi bi-chat-left-dots"></i> Yorum Yönetimi</h2>
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info shadow-sm rounded-4 p-4">
+            Henüz yorum bulunmuyor.
+        </div>
+    }
+    else
+    {
+        <div class="vstack gap-4">
+            @foreach (var blogGroup in grouped)
+            {
+                var blog = blogGroup.First().Blog!;
+                <div class="card shadow-sm rounded-4 overflow-hidden">
+                    <div class="row g-0">
+                        <!-- Blog Görseli -->
+                        <div class="col-md-2 image-hover-container">
+                            <img src="~/img/@blog.ImagePath" class="img-fluid w-100 h-100 object-fit-cover image-hover-effect" style="min-height: 100%; max-height: 220px;" />
+                        </div>
+
+                        <!-- Blog Bilgisi + Yorumlar -->
+                        <div class="col-md-10 p-4">
+                            <h5 class="fw-bold mb-3">
+                                <a href="/Blog/@blog.Slug" target="_blank" class="text-decoration-none text-dark">
+                                    <i class="bi bi-file-text me-1"></i> @blog.Title
+                                </a>
+                            </h5>
+
+                            <ul class="list-group list-group-flush">
+                                @foreach (var comment in blogGroup.OrderByDescending(c => c.CommentDate))
+                                {
+                                    <li class="list-group-item d-flex justify-content-between align-items-start px-0">
+                                        <div>
+                                            <span class="fw-semibold text-primary">@comment.User?.UserName</span>
+                                            <small class="text-muted ms-2">(@comment.CommentDate.ToString("dd.MM.yyyy HH:mm"))</small>
+                                            <p class="mb-1 mt-1 text-secondary">@comment.Content.TruncateHtml(120)</p>
+                                        </div>
+                                        <form method="post" asp-action="DeleteComment" asp-route-id="@comment.Id"
+                                              onsubmit="return confirm('Yorumu silmek istiyor musunuz?')">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </li>
+                                }
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<style>
+    .object-fit-cover {
+        object-fit: cover;
+    }
+
+    .image-hover-container {
+        overflow: hidden;
+        height: 100%;
+    }
+
+    .image-hover-effect {
+        transition: transform 0.3s ease;
+    }
+
+    .image-hover-container:hover .image-hover-effect {
+        transform: scale(1.05);
+    }
+
+    .card:hover {
+        box-shadow: 0 0.75rem 1.25rem rgba(0, 0, 0, 0.08);
+        transition: all 0.3s ease-in-out;
+    }
+
+    .list-group-item {
+        background-color: transparent;
+        border: none;
+        padding: 1rem 0;
+        border-bottom: 1px solid #eee;
+    }
+
+        .list-group-item:last-child {
+            border-bottom: none;
+        }
+</style>

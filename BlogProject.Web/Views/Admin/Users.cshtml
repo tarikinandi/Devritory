@@ -1,0 +1,138 @@
+﻿@model List<User>
+@using System.Security.Claims
+@{
+    ViewData["Title"] = "Kullanıcı Yönetimi";
+    var currentUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+}
+
+<div class="container-fluid py-5 px-4">
+    <h2 class="fw-bold text-primary mb-4"><i class="bi bi-people-fill me-2"></i> Kullanıcı Yönetimi</h2>
+
+    <input type="text" id="userSearch" class="form-control mb-4 shadow-sm" placeholder="Kullanıcı adı veya e-posta ara..." />
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info">Henüz kayıtlı kullanıcı yok.</div>
+    }
+    else
+    {
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4" id="userList">
+            @foreach (var user in Model)
+            {
+                <div class="col">
+                    <div class="card h-100 border-0 shadow-sm rounded-4 user-card">
+                        <div class="card-body d-flex flex-column justify-content-between">
+                            <div class="d-flex align-items-center mb-3">
+                                <img src="~/img/@(user.ImagePath ?? "default.png")"
+                                     class="rounded-circle me-3 border"
+                                     width="60" height="60" style="object-fit: cover;" />
+                                <div>
+                                    <h5 class="mb-1 fw-bold">@user.UserName</h5>
+                                    <p class="text-muted mb-0 small">@user.Email</p>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <span class="badge @(user.Role == "Admin" ? "bg-danger" : "bg-secondary") role-badge">
+                                    @user.Role
+                                </span>
+                            </div>
+
+                            <div class="d-flex justify-content-between">
+                                <button class="btn btn-sm btn-outline-primary w-100 me-2"
+                                        onclick="toggleRole(@user.Id, this)">
+                                    <i class="bi bi-shield-lock"></i> Rolü Değiştir
+                                </button>
+
+                                @if (user.Id != currentUserId)
+                                {
+                                    <button class="btn btn-sm btn-outline-danger w-100"
+                                            onclick="confirmDelete(@user.Id, '@user.UserName')">
+                                        <i class="bi bi-trash"></i> Sil
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button class="btn btn-sm btn-outline-secondary w-100" disabled>
+                                        <i class="bi bi-lock-fill"></i> Kendi Hesabın
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        function toggleRole(id, btn) {
+            $.post('/Admin/ToggleUserRoleAjax', { id }, function (res) {
+                if (res.success) {
+                    const badge = $(btn).closest('.user-card').find('.role-badge');
+                    badge.text(res.newRole);
+                    badge.removeClass('bg-danger bg-secondary')
+                          .addClass(res.newRole === "Admin" ? "bg-danger" : "bg-secondary");
+                } else {
+                    Swal.fire("Hata", "Rol değiştirilemedi!", "error");
+                }
+            });
+        }
+
+        function confirmDelete(id, username) {
+            Swal.fire({
+                title: 'Emin misiniz?',
+                text: `${username} adlı kullanıcı ve tüm yorumları silinecek!`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Evet, sil!',
+                cancelButtonText: 'İptal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.post('/Admin/DeleteUser', { id }, function () {
+                        Swal.fire({
+                            title: 'Silindi!',
+                            text: 'Kullanıcı başarıyla silindi.',
+                            icon: 'success',
+                            timer: 1500,
+                            showConfirmButton: false
+                        }).then(() => {
+                            location.reload();
+                        });
+                    });
+                }
+            });
+        }
+
+        document.getElementById("userSearch").addEventListener("keyup", function () {
+            const keyword = this.value.toLowerCase();
+            const cards = document.querySelectorAll(".user-card");
+
+            cards.forEach(card => {
+                const username = card.querySelector("h5").textContent.toLowerCase();
+                const email = card.querySelector("p.text-muted").textContent.toLowerCase();
+
+                card.closest(".col").style.display =
+                    (username.includes(keyword) || email.includes(keyword)) ? "block" : "none";
+            });
+        });
+    </script>
+}
+
+<style>
+    .user-card:hover {
+        transform: translateY(-3px);
+        transition: 0.3s ease;
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.07);
+    }
+
+    #userSearch {
+        max-width: 400px;
+    }
+</style>

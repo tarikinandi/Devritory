@@ -1,0 +1,89 @@
+﻿@model List<Comment>
+@using System.Security.Claims
+
+@{
+    var allComments = ViewBag.AllComments as List<Comment>;
+    var currentUserId = User.Identity?.IsAuthenticated == true
+        ? int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value)
+        : 0;
+    var isAdmin = User.IsInRole("Admin");
+}
+
+<ul class="list-unstyled ps-3 ms-4 border-start border-2 border-primary-subtle">
+    @foreach (var comment in Model)
+    {
+        <li class="mb-4" id="reply-comment-@comment.Id">
+            <div class="comment-block d-flex gap-3 p-3 rounded-4 shadow-sm bg-light position-relative">
+                <img src="~/img/@(comment.User?.ImagePath ?? "default.png")"
+                     class="rounded-circle border border-2"
+                     width="48" height="48" alt="Profil Fotoğrafı" />
+
+                <div class="flex-grow-1">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="fw-semibold text-primary">@comment.User?.UserName</span>
+                        <small class="text-muted relative-time" data-time="@comment.CommentDate.ToString("o")">
+                            @comment.CommentDate.ToString("g")
+                        </small>
+                    </div>
+
+                    <p class="mb-2 text-dark">@comment.Content</p>
+
+                    <div class="d-flex flex-wrap align-items-center gap-2 small">
+                        <a href="#" class="reply-link text-decoration-none text-primary fw-semibold" data-id="@comment.Id">
+                            <i class="bi bi-reply"></i> Yanıtla
+                        </a>
+
+                        @if (User.Identity?.IsAuthenticated == true && (comment.UserId == currentUserId || isAdmin))
+                        {
+                            <button class="btn btn-sm btn-outline-primary btn-edit-comment" data-id="@comment.Id" data-content="@comment.Content">
+                                <i class="bi bi-pencil-square"></i> Düzenle
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger btn-delete-comment" data-comment-id="@comment.Id">
+                                <i class="bi bi-trash"></i> Sil
+                            </button>
+                        }
+                    </div>
+
+                    <div class="reply-form d-none mt-3" id="reply-form-@comment.Id">
+                        <form asp-action="AddReplyComment" method="post">
+                            <input type="hidden" name="BlogId" value="@comment.BlogId" />
+                            <input type="hidden" name="ParentCommentId" value="@comment.Id" />
+                            <textarea name="Content" class="form-control mb-2" rows="3" placeholder="Yanıt yaz..." required></textarea>
+                            <button type="submit" class="btn btn-sm btn-primary">Gönder</button>
+                        </form>
+                    </div>
+
+                    @if (allComments.Any(c => c.ParentCommentId == comment.Id))
+                    {
+                        var replies = allComments.Where(c => c.ParentCommentId == comment.Id).ToList();
+                        @await Html.PartialAsync("_RepliesPartial", replies)
+                    }
+                </div>
+            </div>
+        </li>
+    }
+</ul>
+
+<style>
+    .comment-block {
+        transition: box-shadow 0.3s ease;
+    }
+
+        .comment-block:hover {
+            box-shadow: 0 0 10px rgba(0, 123, 255, 0.1);
+        }
+
+    .reply-form textarea {
+        resize: vertical;
+        border-radius: 0.5rem;
+    }
+
+    body.dark-mode .comment-block {
+        background-color: #1e1e1e;
+        color: #eee;
+    }
+
+    body.dark-mode .reply-link {
+        color: #90caf9 !important;
+    }
+</style>

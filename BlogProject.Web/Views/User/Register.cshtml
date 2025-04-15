@@ -1,0 +1,51 @@
+﻿@model RegisterViewModel
+
+@{
+    ViewData["Title"] = "Kayıt Ol";
+}
+
+<div class="container my-5">
+    <h2 class="text-center mb-4">@ViewData["Title"]</h2>
+    <div class="card shadow">
+        <div class="card-body p-4 bg-white">
+            <form asp-action="Register" enctype="multipart/form-data" method="post">
+
+                <div class="mb-3">
+                    <label asp-for="UserName" class="form-label fw-bold"></label>
+                    <input asp-for="UserName" class="form-control" placeholder="Kullanıcı adınız" />
+                    <span asp-validation-for="UserName" class="text-danger small"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Email" class="form-label fw-bold"></label>
+                    <input asp-for="Email" class="form-control" placeholder="E-posta adresiniz" />
+                    <span asp-validation-for="Email" class="text-danger small"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Password" class="form-label fw-bold"></label>
+                    <input asp-for="Password" type="password" class="form-control" placeholder="Parolanız" />
+                    <span asp-validation-for="Password" class="text-danger small"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="ConfirmPassword" class="form-label fw-bold"></label>
+                    <input asp-for="ConfirmPassword" type="password" class="form-control" placeholder="Parolanızı doğrulayın" />
+                    <span asp-validation-for="ConfirmPassword" class="text-danger small"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Image" class="form-label fw-bold"></label>
+                    <input asp-for="Image" type="file" class="form-control" />
+                    <span asp-validation-for="Image" class="text-danger small"></span>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100">Kayıt Ol</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

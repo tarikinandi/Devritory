@@ -1,0 +1,81 @@
+﻿@{
+    ViewData["Title"] = "Sıkça Sorulan Sorular";
+}
+
+<div class="container-fluid py-5 px-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="text-center mb-5">
+                <h1 class="fw-bold text-gradient animate__animated animate__fadeInDown">
+                    <i class="bi bi-question-diamond-fill me-2"></i> Sıkça Sorulan Sorular
+                </h1>
+                <p class="lead text-muted mt-2">
+                    Devritory hakkında en çok merak edilenleri sizin için yanıtladık.
+                </p>
+            </div>
+
+            <div class="accordion" id="faqAccordion">
+                @* Soru şablonu *@
+                @{
+                    var questions = new[]
+                    {
+                                new { Id = 1, Question = "Blog yazısı oluşturmak için ne yapmalıyım?", Answer = "Giriş yaptıktan sonra '+ Yeni Blog' butonuna tıklayarak blog oluşturabilirsiniz." },
+                                new { Id = 2, Question = "Yorumlar anında görünür mü?", Answer = "Evet, giriş yapan kullanıcıların yorumları anında görünür ve silinebilir ya da düzenlenebilir." },
+                                new { Id = 3, Question = "Bloglarımı nereden görebilirim?", Answer = "Sağ üstteki menüde bulunan 'Bloglarım' sekmesinden kendi yazdığınız bloglara ulaşabilirsiniz." },
+                                new { Id = 4, Question = "Bloglarım hemen yayınlanır mı?", Answer = "Hayır. Yöneticiler tarafından onaylandıktan sonra aktif hale gelir." },
+                                new { Id = 5, Question = "Hangi teknolojileri kullanıyorsunuz?", Answer = ".NET 9, EF Core, Bootstrap 5, JWT, Docker, reCAPTCHA, Unit Test, jQuery ve daha fazlası." },
+                                };
+                }
+
+                @foreach (var item in questions)
+                {
+                    <div class="accordion-item shadow-sm rounded-4 mb-3 border-0">
+                        <h2 class="accordion-header" id="heading-@item.Id">
+                            <button class="accordion-button fw-semibold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-@item.Id" aria-expanded="false" aria-controls="collapse-@item.Id">
+                                <i class="bi bi-info-circle-fill text-primary me-2"></i> @item.Question
+                            </button>
+                        </h2>
+                        <div id="collapse-@item.Id" class="accordion-collapse collapse" aria-labelledby="heading-@item.Id" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body text-muted">@item.Answer</div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .text-gradient {
+        background: linear-gradient(45deg, #0d6efd, #6610f2);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .accordion-button {
+        transition: background-color 0.3s ease;
+    }
+
+    .accordion-item:hover {
+        box-shadow: 0 0.5rem 1rem rgba(13, 110, 253, 0.1);
+    }
+
+    body.dark-mode .accordion-item {
+        background-color: #2c2c2c;
+        color: #f1f1f1;
+    }
+
+    body.dark-mode .accordion-button {
+        background-color: #2c2c2c;
+        color: #fff;
+    }
+
+        body.dark-mode .accordion-button:not(.collapsed) {
+            background-color: #1f1f1f;
+            color: #90caf9;
+        }
+
+    body.dark-mode .accordion-body {
+        color: #ccc;
+    }
+</style>
