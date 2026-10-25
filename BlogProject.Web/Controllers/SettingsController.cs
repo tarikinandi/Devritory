@@ -82,7 +82,7 @@ namespace BlogProject.Web.Controllers
             if (user == null)
                 return Json(new { success = false, message = "Kullanıcı bulunamadı." });
 
-            if (user.Password != model.CurrentPassword)
+            if (!await _userService.VerifyPasswordAsync(user, model.CurrentPassword))
             {
                 return Json(new { success = false, message = "Mevcut şifre yanlış." });
             }
@@ -92,7 +92,7 @@ namespace BlogProject.Web.Controllers
                 return Json(new { success = false, message = "Yeni şifreler uyuşmuyor." });
             }
 
-            user.Password = model.NewPassword;
+            _userService.SetPassword(user, model.NewPassword);
             await _userService.UpdateAsync(user);
 
             return Json(new { success = true, message = "Şifre başarıyla güncellendi." });

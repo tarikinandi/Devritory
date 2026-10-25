@@ -1,3 +1,7 @@
+using BlogProject.Business.Security;
+using BlogProject.Entity;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using BlogProject.Business.Abstract;
 using BlogProject.Business.Concrete;
 using BlogProject.DataAccess.Abstract;
@@ -16,13 +20,35 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 builder.Services.AddSingleton<IConfiguration>(builder.Configuration);
 
-builder.Services.AddControllersWithViews()
+// Fail fast: with a missing or placeholder signing key anyone could forge an admin token.
+var jwtKey = builder.Configuration["Jwt:Key"];
+if (string.IsNullOrWhiteSpace(jwtKey) || jwtKey.StartsWith("YOUR_", StringComparison.Ordinal) ||
+    Encoding.UTF8.GetByteCount(jwtKey) < 32)
+{
+    throw new InvalidOperationException(
+        "Jwt:Key is missing, still the placeholder, or shorter than 32 bytes. Set it with user-secrets or the Jwt__Key environment variable.");
+}
+
+builder.Services.AddControllersWithViews(options =>
+        options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute()))
     .AddDataAnnotationsLocalization()
     .AddViewLocalization();
 
 
 
 builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
+builder.Services.AddAntiforgery(options =>
+{
+    options.HeaderName = "RequestVerificationToken"; // sent by jQuery/fetch calls, see _Layout
+    options.Cookie.HttpOnly = true;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    options.Cookie.SameSite = SameSiteMode.Strict;
+});
+
+builder.Services.AddSingleton<IPasswordHasher<User>, PasswordHasher<User>>();
+builder.Services.AddSingleton<PasswordService>();
+builder.Services.AddSingleton<LoginThrottle>();
+
 builder.Services.AddScoped<IBlogRepository, BlogRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
@@ -36,7 +62,14 @@ builder.Services.AddScoped<IEmailService, EmailManager>();
 
 
 builder.Services.AddAuthentication("Cookies")
-    .AddCookie("Cookies")
+    .AddCookie("Cookies", options =>
+    {
+        options.LoginPath = "/User/Login";
+        options.AccessDeniedPath = "/User/Login";
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+        options.Cookie.SameSite = SameSiteMode.Lax;
+    })
     .AddJwtBearer("JwtBearer", options =>
     {
         options.TokenValidationParameters = new TokenValidationParameters
@@ -56,6 +89,15 @@ builder.Services.AddAuthentication("Cookies")
 var app = builder.Build();
 
 SeedData.Initialize(app);
+
+// One-time upgrade of rows that still hold a plain-text password (idempotent, no-op afterwards).
+using (var scope = app.Services.CreateScope())
+{
+    var migrated = scope.ServiceProvider.GetRequiredService<IUserService>()
+        .MigrateLegacyPasswordsAsync().GetAwaiter().GetResult();
+    if (migrated > 0)
+        app.Logger.LogWarning("Hashed {Count} legacy plain-text password(s).", migrated);
+}
 
 if (!app.Environment.IsDevelopment())
 {

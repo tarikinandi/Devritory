@@ -1,4 +1,5 @@
 ﻿using BlogProject.Business.Abstract;
+using BlogProject.Business.Security;
 using BlogProject.Entity;
 using BlogProject.Web.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -14,12 +15,14 @@ namespace BlogProject.Web.Controllers
         private readonly IUserService _userService;
         private readonly IConfiguration _configuration;
         private readonly IEmailService _emailService;
+        private readonly LoginThrottle _throttle;
 
-        public UserController(IUserService userService, IConfiguration configuration, IEmailService emailService)
+        public UserController(IUserService userService, IConfiguration configuration, IEmailService emailService, LoginThrottle throttle)
         {
             _userService = userService;
             _configuration = configuration;
             _emailService = emailService;
+            _throttle = throttle;
         }
 
         [HttpGet]
@@ -27,7 +30,7 @@ namespace BlogProject.Web.Controllers
         {
             return View();
         }
-        
+
         [HttpPost]
         public async Task<IActionResult> Register(RegisterViewModel model)
         {
@@ -47,9 +50,9 @@ namespace BlogProject.Web.Controllers
             {
                 UserName = model.UserName,
                 Email = model.Email,
-                Password = model.Password, 
                 ImagePath = model.Image != null ? SaveImage(model.Image) : "default.png"
             };
+            _userService.SetPassword(newUser, model.Password);
 
             await _userService.CreateAsync(newUser);
 
@@ -58,7 +61,13 @@ namespace BlogProject.Web.Controllers
 
         private string SaveImage(IFormFile image)
         {
-            var fileName = Path.GetFileName(image.FileName);
+            // Server-chosen name and an image-extension allow-list: no overwriting of existing
+            // files and no uploaded scripts or HTML.
+            var extension = Path.GetExtension(image.FileName).ToLowerInvariant();
+            if (extension is not (".jpg" or ".jpeg" or ".png" or ".gif" or ".webp"))
+                return "default.png";
+
+            var fileName = Guid.NewGuid().ToString("N") + extension;
             var savePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/img", fileName);
             Directory.CreateDirectory(Path.GetDirectoryName(savePath)!);
             using (var stream = new FileStream(savePath, FileMode.Create))
@@ -69,31 +78,49 @@ namespace BlogProject.Web.Controllers
         }
 
         [HttpGet]
-        public IActionResult Login()
+        public IActionResult Login(string? returnUrl = null)
         {
+            ViewData["ReturnUrl"] = returnUrl;
             return View();
         }
 
         [HttpPost]
-        public async Task<IActionResult> Login(LoginViewModel model)
+        public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl = null)
         {
+            ViewData["ReturnUrl"] = returnUrl;
             if (!ModelState.IsValid)
                 return View(model);
 
-            var user = await _userService.GetByEmailAsync(model.Email);
-            if (user == null || user.Password != model.Password)
+            var throttleKey = LoginThrottle.Key(model.Email, HttpContext.Connection.RemoteIpAddress?.ToString());
+            if (_throttle.IsLocked(throttleKey))
             {
+                ModelState.AddModelError("", "Çok fazla başarısız deneme. Lütfen biraz sonra tekrar deneyin.");
+                return View(model);
+            }
+
+            // Same message whether the e-mail exists or not, so the form does not reveal accounts.
+            var user = await _userService.GetByEmailAsync(model.Email);
+            if (user == null || !await _userService.VerifyPasswordAsync(user, model.Password))
+            {
+                _throttle.RegisterFailure(throttleKey);
                 ModelState.AddModelError("", "E-posta veya şifre hatalı.");
                 return View(model);
             }
-    
+
+            _throttle.Reset(throttleKey);
             var token = GenerateJwtToken(user);
 
             Response.Cookies.Append("blogToken", token, new CookieOptions
             {
                 HttpOnly = true,
-                Expires = DateTime.Now.AddHours(2)
+                Secure = true,
+                SameSite = SameSiteMode.Lax,
+                Expires = DateTimeOffset.UtcNow.AddHours(2)
             });
+
+            // Local paths only: an absolute or protocol-relative returnUrl would be an open redirect.
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                return LocalRedirect(returnUrl);
 
             return RedirectToAction("Index", "Blog");
         }
@@ -116,14 +143,14 @@ namespace BlogProject.Web.Controllers
                 new Claim(ClaimTypes.Name, user.UserName),
                 new Claim(ClaimTypes.Email, user.Email),
                 new Claim("ImagePath", user.ImagePath ?? "default.png"),
-                new Claim(ClaimTypes.Role, user.Role ?? "User") 
+                new Claim(ClaimTypes.Role, user.Role ?? "User")
             };
 
             var token = new JwtSecurityToken(
                 _configuration["Jwt:Issuer"],
                 _configuration["Jwt:Audience"],
                 claims,
-                expires: DateTime.Now.AddHours(2),
+                expires: DateTime.UtcNow.AddHours(2),
                 signingCredentials: credentials
             );
 
@@ -142,23 +169,18 @@ namespace BlogProject.Web.Controllers
             if (!ModelState.IsValid)
                 return View(model);
 
+            // Identical answer for known and unknown e-mails (no account enumeration).
             var user = await _userService.GetByEmailAsync(model.Email);
-            if (user == null)
+            if (user != null)
             {
-                ModelState.AddModelError("", "E-posta sistemde bulunamadı.");
-                return View(model);
+                var token = _userService.CreatePasswordResetToken(user, TimeSpan.FromHours(1));
+                await _userService.UpdateAsync(user);
+
+                var resetLink = Url.Action("ResetPassword", "User", new { token = token, email = model.Email }, Request.Scheme);
+                await _emailService.SendAsync(user.Email, "Şifre Yenileme Bağlantısı", $"Şifrenizi yenilemek için <a href='{resetLink}'>buraya tıklayın</a>.");
             }
 
-            var token = Guid.NewGuid().ToString();
-            user.PasswordResetToken = token;
-            user.PasswordResetTokenExpires = DateTime.Now.AddHours(1);
-
-            await _userService.UpdateAsync(user);
-
-            var resetLink = Url.Action("ResetPassword", "User", new { token = token, email = model.Email }, Request.Scheme);
-            await _emailService.SendAsync(user.Email, "Şifre Yenileme Bağlantısı", $"Şifrenizi yenilemek için <a href='{resetLink}'>buraya tıklayın</a>.");
-
-            ViewBag.Message = "Şifre yenileme bağlantısı e-posta adresinize gönderildi.";
+            ViewBag.Message = "Bu e-posta adresine kayıtlı bir hesap varsa, şifre yenileme bağlantısı gönderildi.";
             return View();
         }
 
@@ -175,13 +197,13 @@ namespace BlogProject.Web.Controllers
                 return View(model);
 
             var user = await _userService.GetByEmailAsync(model.Email);
-            if (user == null || user.PasswordResetToken != model.Token || user.PasswordResetTokenExpires < DateTime.Now)
+            if (user == null || !_userService.IsPasswordResetTokenValid(user, model.Token))
             {
                 ModelState.AddModelError("", "Geçersiz veya süresi dolmuş bağlantı.");
                 return View(model);
             }
 
-            user.Password = model.NewPassword; 
+            _userService.SetPassword(user, model.NewPassword);
             user.PasswordResetToken = null;
             user.PasswordResetTokenExpires = null;
 
