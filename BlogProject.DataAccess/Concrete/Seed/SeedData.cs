@@ -1,42 +1,93 @@
-﻿using BlogProject.DataAccess.Concrete.Context;
+using BlogProject.DataAccess.Concrete.Context;
 using BlogProject.Entity;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using System.Text.RegularExpressions;
 
 namespace BlogProject.DataAccess.Concrete.Seed
 {
     public static class SeedData
     {
+        public const int MinAdminPasswordLength = 10;
+
         public static void Initialize(IApplicationBuilder app)
         {
             using var scope = app.ApplicationServices.CreateScope();
-            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var sp = scope.ServiceProvider;
+            var context = sp.GetRequiredService<AppDbContext>();
 
             context.Database.Migrate();
 
-            if (!context.Categories.Any())
+            SeedCategories(context);
+            SeedAdmin(context,
+                sp.GetRequiredService<IConfiguration>(),
+                sp.GetRequiredService<IPasswordHasher<User>>(),
+                sp.GetRequiredService<ILoggerFactory>().CreateLogger("SeedData"));
+            SeedSampleBlogs(context);
+        }
+
+        public static void SeedCategories(AppDbContext context)
+        {
+            if (context.Categories.Any()) return;
+            context.Categories.AddRange(
+                new Category { Name = "Yazılım" },
+                new Category { Name = "Teknoloji" },
+                new Category { Name = "Kariyer" });
+            context.SaveChanges();
+        }
+
+        /// <summary>
+        /// Creates the initial admin only from configuration (SeedAdmin:Email, SeedAdmin:UserName,
+        /// SeedAdmin:Password). Nothing is created when it is not configured, when the password is
+        /// too short, or when a user with that e-mail already exists. The password is never logged.
+        /// </summary>
+        public static bool SeedAdmin(AppDbContext context, IConfiguration config, IPasswordHasher<User> hasher, ILogger? logger = null)
+        {
+            var email = config["SeedAdmin:Email"]?.Trim();
+            var userName = config["SeedAdmin:UserName"]?.Trim();
+            var password = config["SeedAdmin:Password"];
+
+            if (string.IsNullOrWhiteSpace(email) && string.IsNullOrWhiteSpace(userName) && string.IsNullOrEmpty(password))
+                return false;
+
+            if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(userName) || string.IsNullOrEmpty(password))
             {
-                var cat1 = new Category { Name = "Yazılım" };
-                var cat2 = new Category { Name = "Teknoloji" };
-                var cat3 = new Category { Name = "Kariyer" };
-                context.Categories.AddRange(cat1, cat2, cat3);
-                context.SaveChanges();
+                logger?.LogWarning("SeedAdmin is partly configured (Email, UserName and Password are all required); admin not created.");
+                return false;
             }
 
-            if (!context.Users.Any())
+            if (password.Length < MinAdminPasswordLength)
             {
-                var user1 = new User { UserName = "admin", Email = "admin@blog.com", Password = "123456", ImagePath = "default.png" , Role="Admin"};
-                var user2 = new User { UserName = "ahmet", Email = "ahmet@example.com", Password = "123456", ImagePath = "default.png" };
-                context.Users.AddRange(user1, user2);
-                context.SaveChanges();
+                logger?.LogWarning("SeedAdmin:Password is shorter than {Min} characters; admin not created.", MinAdminPasswordLength);
+                return false;
             }
 
-            if (!context.Blogs.Any())
+            var lowerEmail = email.ToLower();
+            var lowerName = userName.ToLower();
+            if (context.Users.Any(u => u.Email.ToLower() == lowerEmail || u.UserName.ToLower() == lowerName))
+                return false;
+
+            var admin = new User { UserName = userName, Email = email, ImagePath = "default.png", Role = "Admin" };
+            admin.Password = hasher.HashPassword(admin, password);
+            context.Users.Add(admin);
+            context.SaveChanges();
+            logger?.LogInformation("Initial admin user created from configuration.");
+            return true;
+        }
+
+        private static void SeedSampleBlogs(AppDbContext context)
+        {
+            if (context.Blogs.Any()) return;
+            var author = context.Users.FirstOrDefault(u => u.Role == "Admin");
+            if (author == null) return; // sample posts need an author; there is no built-in account any more
+
             {
-                var user1 = context.Users.First();
-                var user2 = context.Users.Skip(1).First();
+                var user1 = author;
+                var user2 = author;
                 var categories = context.Categories.ToList();
 
                 string GenerateSlug(string title)
@@ -60,11 +111,7 @@ namespace BlogProject.DataAccess.Concrete.Seed
             ImagePath = "blog1.jpg",
             UserId = user1.Id,
             IsActive = true,
-            Categories = new List<Category> { categories[0], categories[1] },
-            Comments = new List<Comment>
-            {
-                new Comment { Content = "Çok faydalı içerik.", CommentDate = DateTime.Now, UserId = user2.Id }
-            }
+            Categories = new List<Category> { categories[0], categories[1] }
         },
         new Blog
         {
