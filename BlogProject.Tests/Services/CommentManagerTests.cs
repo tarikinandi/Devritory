@@ -73,14 +73,13 @@ namespace BlogProject.Tests.Business
         }
 
         [Fact]
-        public async Task DeleteAsync_Should_Call_Delete_And_Save()
+        public async Task DeleteAsync_Should_Delegate_To_Repository()
         {
             var comment = new Comment { Id = 9 };
 
             await _commentManager.DeleteAsync(comment);
 
-            _mockRepo.Verify(r => r.Delete(comment), Times.Once);
-            _mockRepo.Verify(r => r.SaveAsync(), Times.Once);
+            _mockRepo.Verify(r => r.DeleteAsync(comment), Times.Once);
         }
 
         [Fact]
