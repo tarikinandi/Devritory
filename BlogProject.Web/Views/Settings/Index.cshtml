@@ -93,7 +93,8 @@
             const formData = new FormData(this);
             fetch('/Settings/UpdateProfile', {
                 method: 'POST',
-                body: formData
+                body: formData,
+                headers: { 'RequestVerificationToken': this.querySelector('input[name=__RequestVerificationToken]').value }
             }).then(res => res.json())
               .then(data => {
                   alert(data.message);
@@ -106,7 +107,8 @@
             const formData = new FormData(this);
             fetch('/Settings/ChangePassword', {
                 method: 'POST',
-                body: formData
+                body: formData,
+                headers: { 'RequestVerificationToken': this.querySelector('input[name=__RequestVerificationToken]').value }
             }).then(res => res.json())
               .then(data => {
                   alert(data.message);

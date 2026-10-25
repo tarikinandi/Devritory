@@ -90,7 +90,7 @@
                 <div class="bg-white dark-mode-card rounded-4 p-4 shadow-sm mb-5">
                     <h4 class="fw-bold mb-4 border-bottom pb-2">Yorum Yap</h4>
 
-                        <form id="commentForm" method="post">
+                        <form id="commentForm" method="post" asp-antiforgery="true">
                             <input type="hidden" name="blogId" value="@Model.Id" />
                         <div class="mb-3">
                             <label for="content" class="form-label fw-semibold">Yorumunuz</label>
